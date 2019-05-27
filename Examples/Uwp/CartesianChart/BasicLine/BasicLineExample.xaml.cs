@@ -37,6 +37,13 @@ namespace UWP.CartesianChart.BasicLine
                     Values = new ChartValues<double> { 4,2,7,2,7 },
                     PointGeometry = DefaultGeometries.Square,
                     PointGeometrySize = 15
+                },
+                new LineSeries
+                {
+                    Title = "Series 4",
+                    Values = new ChartValues<double> { 1,2,3,4,5},
+                    PointGeometry = DefaultGeometries.Square,
+                    PointGeometrySize = 15
                 }
             };
 

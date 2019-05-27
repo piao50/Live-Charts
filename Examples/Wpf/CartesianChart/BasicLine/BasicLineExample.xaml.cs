@@ -22,6 +22,11 @@ namespace Wpf.CartesianChart.BasicLine
                 {
                     Title = "Series 2",
                     Values = new ChartValues<double> { 6, 7, 3, 4 ,6 }
+                },
+                new LineSeries
+                {
+                    Title = "Gu Shi",
+                    Values = new ChartValues<double> { 1, 2, 3, 4 ,5 }
                 }
             };
 

@@ -88,6 +88,9 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="..\..\Extension\NuclideSeries.cs">
+      <Link>NuclideSeries.cs</Link>
+    </Compile>
     <Compile Include="CartesianChart\Chart to Image\ChartToImageSample.xaml.cs">
       <DependentUpon>ChartToImageSample.xaml</DependentUpon>
     </Compile>
