@@ -1,11 +1,13 @@
 using System;
 using System.ComponentModel;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using LiveCharts.Charts;
+using LiveCharts.Defaults;
 using LiveCharts.Definitions.Points;
 using LiveCharts.Definitions.Series;
 using LiveCharts.Dtos;
@@ -18,11 +20,12 @@ namespace LiveCharts.Wpf
 	/// <summary>
     /// An already configured weighted chart point, this class notifies the chart to update every time a property changes
     /// </summary>
-    public class NuclidePoint : INotifyPropertyChanged
+    public class NuclidePoint : ObservablePoint
     {
-        private double _x;
-        private double _y;
-        private double _weight;
+        private double _channel;
+        private double _count;
+        private double _energy;
+        private string _nuclide;
 
         /// <summary>
         /// Creates a new instance of BubblePoint class
@@ -33,89 +36,61 @@ namespace LiveCharts.Wpf
         }
 
         /// <summary>
-        /// Create a new instance of BubblePoint class, giving x and y coordinates
+        /// X coordinate in the chart
         /// </summary>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        public NuclidePoint(double x, double y)
+        public string Nuclide
         {
-            X = x;
-            Y = y;
-        }
-
-        /// <summary>
-        /// Creates a new instance of BubblePoint class, giving x, y and weight
-        /// </summary>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        /// <param name="weight"></param>
-        public NuclidePoint(double x, double y, double weight)
-        {
-            X = x;
-            Y = y;
-            Weight = weight;
+            get { return _nuclide; }
+            set
+            {
+                _nuclide = value;
+                OnPropertyChanged("Nuclide");
+            }
         }
 
         /// <summary>
         /// X coordinate in the chart
         /// </summary>
-        public double X
+        public double Channel
         {
-            get { return _x; }
+            get { return _channel; }
             set
             {
-                _x = value;
-                OnPropertyChanged("X");
+                _channel = value;
+                OnPropertyChanged("Channel");
             }
         }
 
         /// <summary>
         /// Y coordinate in the chart
         /// </summary>
-        public double Y
+        public double Count
         {
-            get { return _y; }
+            get { return _count; }
             set
             {
-                _y = value;
-                OnPropertyChanged("Y");
+                _count = value;
+                OnPropertyChanged("Count");
             }
         }
 
         /// <summary>
         /// Point's weight
         /// </summary>
-        public double Weight
+        public double Energy
         {
-            get { return _weight; }
+            get { return _energy; }
             set
             {
-                _weight = value;
-                OnPropertyChanged("Weight");
+                _energy = value;
+                OnPropertyChanged("Energy");
             }
         }
-
-        #region INotifyPropertyChangedImplementation
-
-        /// <summary>
-        /// Occurs when a property value changes.
-        /// </summary>
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        /// <summary>
-        /// Called when [property changed].
-        /// </summary>
-        /// <param name="propertyName">Name of the property.</param>
-        protected virtual void OnPropertyChanged(string propertyName = null)
-        {
-            if (PropertyChanged != null) PropertyChanged.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        #endregion
     }
 
 	public class NuclidePointView : IChartPointView
 	{
+        public TextBlock TextBlock { get; set; }
 	    public Shape Shape { get; set; }
         public double Diameter { get; set; }
         public Shape HoverShape { get; set; }
@@ -129,6 +104,9 @@ namespace LiveCharts.Wpf
             {
                 Canvas.SetTop(Shape, current.ChartLocation.Y);
                 Canvas.SetLeft(Shape, current.ChartLocation.X);
+
+                Canvas.SetTop(TextBlock, current.ChartLocation.Y);
+                Canvas.SetLeft(TextBlock, current.ChartLocation.X);
 
                 Shape.Width = 0;
                 Shape.Height = 0;
@@ -156,12 +134,22 @@ namespace LiveCharts.Wpf
                 Canvas.SetTop(Shape, current.ChartLocation.Y - Shape.Height*.5);
                 Canvas.SetLeft(Shape, current.ChartLocation.X - Shape.Width*.5);
 
+                {
+                    TextBlock.UpdateLayout();
+
+                    var cx = CorrectXLabel(current.ChartLocation.X - TextBlock.ActualWidth * .5, chart);
+                    var cy = CorrectYLabel(current.ChartLocation.Y - TextBlock.ActualHeight * .5, chart);
+
+                    Canvas.SetTop(TextBlock, cy);
+                    Canvas.SetLeft(TextBlock, cx);
+                }
+
                 if (DataLabel != null)
                 {
                     DataLabel.UpdateLayout();
 
-                    var cx = CorrectXLabel(current.ChartLocation.X - DataLabel.ActualWidth*.5, chart);
-                    var cy = CorrectYLabel(current.ChartLocation.Y - DataLabel.ActualHeight*.5, chart);
+                    var cx = CorrectXTextBlock(current.ChartLocation.X - DataLabel.ActualWidth*.5, chart);
+                    var cy = CorrectYTextBlock(current.ChartLocation.Y - DataLabel.ActualHeight*.5, chart);
 
                     Canvas.SetTop(DataLabel, cy);
                     Canvas.SetLeft(DataLabel, cx);
@@ -183,6 +171,17 @@ namespace LiveCharts.Wpf
                 DataLabel.BeginAnimation(Canvas.TopProperty, new DoubleAnimation(cy, animSpeed));
             }
 
+            if (TextBlock != null)
+            {
+                TextBlock.UpdateLayout();
+
+                var cx = CorrectXTextBlock(current.ChartLocation.X - TextBlock.ActualWidth * .5, chart);
+                var cy = CorrectYTextBlock(current.ChartLocation.Y - TextBlock.ActualHeight * .5, chart);
+
+                TextBlock.BeginAnimation(Canvas.LeftProperty, new DoubleAnimation(cx, animSpeed));
+                TextBlock.BeginAnimation(Canvas.TopProperty, new DoubleAnimation(cy, animSpeed));
+            }
+
             Shape.BeginAnimation(FrameworkElement.WidthProperty,
                 new DoubleAnimation(Diameter, animSpeed));
             Shape.BeginAnimation(FrameworkElement.HeightProperty,
@@ -199,6 +198,26 @@ namespace LiveCharts.Wpf
             chart.View.RemoveFromDrawMargin(HoverShape);
             chart.View.RemoveFromDrawMargin(Shape);
             chart.View.RemoveFromDrawMargin(DataLabel);
+        }
+
+        protected double CorrectXTextBlock(double desiredPosition, ChartCore chart)
+        {
+            if (desiredPosition + TextBlock.ActualWidth > chart.DrawMargin.Width)
+                desiredPosition -= desiredPosition + TextBlock.ActualWidth - chart.DrawMargin.Width;
+
+            if (desiredPosition < 0) desiredPosition = 0;
+
+            return desiredPosition;
+        }
+
+        protected double CorrectYTextBlock(double desiredPosition, ChartCore chart)
+        {
+            if (desiredPosition + TextBlock.ActualHeight > chart.DrawMargin.Height)
+                desiredPosition -= desiredPosition + TextBlock.ActualHeight - chart.DrawMargin.Height;
+
+            if (desiredPosition < 0) desiredPosition = 0;
+
+            return desiredPosition;
         }
 
         protected double CorrectXLabel(double desiredPosition, ChartCore chart)
@@ -243,32 +262,39 @@ namespace LiveCharts.Wpf
         }
 	}
 
-	public class NuclideAlgorithm : SeriesAlgorithm
-	{
+	public class NuclideAlgorithm : LineAlgorithm
+    {
 		public NuclideAlgorithm(ISeriesView view) : base(view)
 		{
 		}
 		public override void Update()
 		{
-			var nuclideSeries = (NuclideSeries) View;
             foreach (var chartPoint in View.ActualValues.GetPoints(View))
             {
-                //chartPoint.ChartLocation = ChartFunctions.ToDrawMargin(
-                //    chartPoint, View.ScalesXAt, View.ScalesYAt, Chart) + uw;
-
-                //chartPoint.SeriesView = View;
-
-                //chartPoint.View = View.GetPointView(chartPoint,
-                //    View.DataLabels ? View.GetLabelPointFormatter()(chartPoint) : null);
-
-                //var bubbleView = (IScatterPointView) chartPoint.View;
-
-                //bubbleView.Diameter = m*(chartPoint.Weight - p1.X) + p1.Y;
-
+                chartPoint.SetPrivateProperty("View", View.GetPointView(chartPoint, View.DataLabels ? View.GetLabelPointFormatter()(chartPoint) : null));
+                chartPoint.SetPrivateProperty("SeriesView", View);
+                chartPoint.SetPrivateProperty("ChartLocation", ChartFunctions.ToDrawMargin(chartPoint, View.ScalesXAt, View.ScalesYAt, Chart));
                 chartPoint.View.DrawOrMove(null, chartPoint, 0, Chart);
             }
 		}
-	}
+    }
+
+    public static class TestClass
+    {
+        public static void SetPrivateProperty(this object instance, string propertyname, object value)
+        {
+            var type = instance.GetType();
+            PropertyInfo field = type.GetProperty(propertyname);//flag
+            field.SetValue(instance, value, null);
+        }
+
+        public static T GetPrivateField<T>(this object instance, string fieldname)
+        {
+            var type = instance.GetType();
+            FieldInfo field = type.GetField(fieldname);//, flag);
+            return (T)field.GetValue(instance);
+        }
+    }
 
 	public class NuclideSeries : Series
 	{
@@ -307,7 +333,60 @@ namespace LiveCharts.Wpf
         /// <returns></returns>
         public override IChartPointView GetPointView(ChartPoint point, string label)
 		{
-            return null;
+            var pbv = (NuclidePointView)point.View;
+            var val = point.Instance as NuclidePoint;
+            if (pbv == null)
+            {
+                pbv = new NuclidePointView
+                {
+                    IsNew = true,
+                    TextBlock = new TextBlock
+                    {
+                        Text = val == null ? "--" : val.Nuclide,
+                        FontStyle = FontStyles.Italic,
+                        LayoutTransform = new RotateTransform(-90),
+                    },
+                };
+                Model.Chart.View.AddToDrawMargin(pbv.TextBlock);
+            }
+            else
+            {
+                pbv.IsNew = false;
+                point.SeriesView.Model.Chart.View.EnsureElementBelongsToCurrentDrawMargin(pbv.TextBlock);
+                point.SeriesView.Model.Chart.View.EnsureElementBelongsToCurrentDrawMargin(pbv.Shape);
+                //point.SeriesView.Model.Chart.View.EnsureElementBelongsToCurrentDrawMargin(pbv.HoverShape);
+                point.SeriesView.Model.Chart.View.EnsureElementBelongsToCurrentDrawMargin(pbv.DataLabel);
+            }
+            var PointGeometrySize = 15;
+            if (PointGeometry != null && Math.Abs(PointGeometrySize) > 0.1 && pbv.Shape == null)
+            {
+                if (PointGeometry != null)
+                {
+                    pbv.Shape = new Path
+                    {
+                        Stretch = Stretch.Fill,
+                        StrokeThickness = StrokeThickness
+                    };
+                }
+                Model.Chart.View.AddToDrawMargin(pbv.Shape);
+            }
+            
+            if (pbv.Shape != null)
+            {
+                //pbv.Shape.Fill = PointForeground;
+                pbv.Shape.Stroke = Stroke;
+                pbv.Shape.StrokeThickness = StrokeThickness;
+                //pbv.Shape.Width = PointGeometrySize;
+                //pbv.Shape.Height = PointGeometrySize;
+                pbv.Shape.SetPrivateProperty("Data", PointGeometry);
+                pbv.Shape.Visibility = Visibility;
+                Panel.SetZIndex(pbv.Shape, Panel.GetZIndex(this) + 1);
+
+                if (point.Stroke != null) pbv.Shape.Stroke = (Brush)point.Stroke;
+                if (point.Fill != null) pbv.Shape.Fill = (Brush)point.Fill;
+            }
+
+            return pbv;
 		}
         #endregion
 

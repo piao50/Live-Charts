@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Windows.Controls;
 using LiveCharts;
+using LiveCharts.Defaults;
 using LiveCharts.Wpf;
 
 namespace Wpf.CartesianChart.BasicLine
@@ -23,10 +24,15 @@ namespace Wpf.CartesianChart.BasicLine
                     Title = "Series 2",
                     Values = new ChartValues<double> { 6, 7, 3, 4 ,6 }
                 },
-                new LineSeries
+                new NuclideSeries
                 {
                     Title = "Gu Shi",
-                    Values = new ChartValues<double> { 1, 2, 3, 4 ,5 }
+                    Values = new ChartValues<ObservablePoint> {
+                        new NuclidePoint() { X = 1, Y = 2, Energy = 12.1f, Nuclide = "Gushi1"},
+                        new NuclidePoint() { X = 2, Y = 4, Energy = 12.1f, Nuclide = "Gushi1"},
+                        new NuclidePoint() { X = 3, Y = 8, Energy = 12.1f, Nuclide = "Gushi1"},
+                        new NuclidePoint() { X = 4, Y = 12, Energy = 12.1f, Nuclide = "Gushi1"},
+                    }
                 }
             };
 
@@ -41,7 +47,7 @@ namespace Wpf.CartesianChart.BasicLine
             });
 
             //modifying any series values will also animate and update the chart
-            SeriesCollection[2].Values.Add(5d);
+            //SeriesCollection[2].Values.Add(5d);
 
             DataContext = this;
         }
