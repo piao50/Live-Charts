@@ -28,11 +28,14 @@ namespace Wpf.CartesianChart.BasicLine
                 {
                     Title = "Gu Shi",
                     Values = new ChartValues<ObservablePoint> {
-                        new NuclidePoint() { X = 1, Y = 2, Energy = 12.1f, Nuclide = "Gushi1"},
-                        new NuclidePoint() { X = 2, Y = 4, Energy = 12.1f, Nuclide = "Gushi1"},
-                        new NuclidePoint() { X = 3, Y = 8, Energy = 12.1f, Nuclide = "Gushi1"},
-                        new NuclidePoint() { X = 4, Y = 12, Energy = 12.1f, Nuclide = "Gushi1"},
-                    }
+                        new NuclidePoint() { X = 1, Y = 1, Nuclide = "Gushi1"},
+                        new NuclidePoint() { X = 2, Y = 2, Nuclide = "Gushi2"},
+                        new NuclidePoint() { X = 3, Y = 3, Nuclide = "Gushi3"},
+                        new NuclidePoint() { X = 4, Y = 4, Nuclide = "Gushi4"},
+                    },
+                    PointGeometry = NuclidePointView.Arraw,
+                    StrokeThickness = 2,
+                    Fill = null,
                 }
             };
 
